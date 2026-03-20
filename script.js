@@ -2,28 +2,33 @@ const room = document.getElementById('room');
 const character = document.getElementById('character');
 const secondHand = document.getElementById('second-hand');
 
-// --- 1. 時計の制御（カクカク動く秒針 ＋ 1分ごとのイベント） ---
-let lastMinute = -1;
+// --- 1. 時計の制御（滑らかに永遠に回り続ける秒針） ---
+let totalDegrees = 0;
+let lastSeconds = new Date().getSeconds();
 
 function updateClock() {
     const now = new Date();
     const seconds = now.getSeconds();
-    const minutes = now.getMinutes();
     
-    // 秒針を1秒ごとに6度回転
-    const degrees = seconds * 6; 
-    secondHand.style.transform = `translateX(-50%) rotate(${degrees}deg)`;
-
-    // 【新機能】1分経過する（秒が0に戻る）たびにイベント抽選
-    if (minutes !== lastMinute && seconds === 0) {
-        lastMinute = minutes;
+    // 0秒をまたいだ時に逆回転しないよう、差分だけを足していく
+    let diff = seconds - lastSeconds;
+    if (diff < 0) diff += 60; // 59秒から0秒になった時用
+    
+    totalDegrees += diff * 6;
+    secondHand.style.transform = `translateX(-50%) rotate(${totalDegrees}deg)`;
+    
+    // 1分ごとのアクション判定（秒が0になった瞬間）
+    if (seconds === 0 && lastSeconds !== 0) {
         triggerSpecialEvent();
     }
+    
+    lastSeconds = seconds;
 }
+// 1秒ごとに「カチッ」と動かす
 setInterval(updateClock, 1000);
 updateClock();
 
-// --- 2. キャラクターの制御 ---
+// --- 2. キャラクターのポーズ制御 ---
 function setPose(pose) {
     character.style.backgroundImage = `url('assets/${pose}.png')`;
 }
@@ -44,28 +49,30 @@ function stopWalking() {
     walkInterval = null;
 }
 
-// 特別なイベント（1分に1回呼ばれる）
+// 特別なポーズ（座る・寝る）をさせる
 function triggerSpecialEvent() {
     const dice = Math.random();
-    if (dice < 0.3) {
+    if (dice < 0.5) {
         setPose('sit');
-        console.log("Special Event: Sitting");
-    } else if (dice < 0.6) {
+    } else {
         setPose('sleep');
-        console.log("Special Event: Sleeping");
     }
-    // 特殊ポーズの時は、次のautoMoveまでその場に留まらせる
 }
 
-// --- 3. メインの移動ロジック ---
+// --- 3. メインの自律行動ロジック ---
 async function autoMove() {
-    // 現在の画像が sit や sleep なら、少し長めにその場で待機してから歩き出す
+    // 今のポーズをチェック
     const currentBg = character.style.backgroundImage;
+    
+    // すでに sit か sleep なら、5秒楽しんだら front に戻してすぐ次の行動へ
     if (currentBg.includes('sit') || currentBg.includes('sleep')) {
         await new Promise(resolve => setTimeout(resolve, 5000));
+        setPose('front');
+        await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    const isWalking = Math.random() > 0.3;
+    // 動き出す抽選（頻度を上げました）
+    const isWalking = Math.random() > 0.2; 
     
     if (isWalking) {
         const currentX = parseFloat(character.style.left) || 210;
@@ -78,13 +85,20 @@ async function autoMove() {
         character.style.left = `${targetX}px`;
         character.style.top = `${targetY}px`;
 
+        // 2秒かけて移動
         await new Promise(resolve => setTimeout(resolve, 2000));
         stopWalking();
         setPose('front');
+    } else {
+        // 歩かない時はたまに座ったり寝たりする
+        triggerSpecialEvent();
+        // 5秒後にまた次の判定へ
+        setTimeout(autoMove, 5000);
+        return;
     }
 
-    // 待機時間（正面を向いている時間を多めに）
-    const waitTime = 6000 + Math.random() * 4000;
+    // 次の行動までの待機時間を短縮（3秒〜6秒）
+    const waitTime = 3000 + Math.random() * 3000;
     setTimeout(autoMove, waitTime);
 }
 
@@ -92,4 +106,5 @@ async function autoMove() {
 setPose('front');
 character.style.left = '210px';
 character.style.top = '210px';
+// 起動してすぐに動き出す
 setTimeout(autoMove, 1000);
