@@ -33,18 +33,7 @@ body, html {
     transition: transform 0.1s cubic-bezier(0.4, 2.08, 0.55, 0.44);
 }
 
-#character {
-    position: absolute;
-    width: 80px;  /* 少し小さめに調整 */
-    height: 80px;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    transition: left 2s linear, top 2s linear;
-    z-index: 10;
-}
 
-/* 時計本体のスタイルはそのまま */
 #clock {
     position: absolute;
     top: 20px;
@@ -54,4 +43,16 @@ body, html {
     border: 3px solid #333;
     border-radius: 50%;
     background: white;
+    z-index: 1; /* 時計は奥に */
+}
+
+#character {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: left 2s linear, top 2s linear;
+    z-index: 10; /* キャラクターは手前に */
 }

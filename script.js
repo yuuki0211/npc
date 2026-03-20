@@ -61,23 +61,35 @@ function triggerSpecialEvent() {
 
 // --- 3. メインの自律行動ロジック ---
 async function autoMove() {
-    // 今のポーズをチェック
     const currentBg = character.style.backgroundImage;
     
-    // すでに sit か sleep なら、5秒楽しんだら front に戻してすぐ次の行動へ
     if (currentBg.includes('sit') || currentBg.includes('sleep')) {
         await new Promise(resolve => setTimeout(resolve, 5000));
         setPose('front');
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    // 動き出す抽選（頻度を上げました）
     const isWalking = Math.random() > 0.2; 
     
     if (isWalking) {
         const currentX = parseFloat(character.style.left) || 210;
-        const targetX = Math.random() * (room.clientWidth - 80);
-        const targetY = Math.random() * (room.clientHeight - 80);
+        
+        let targetX, targetY;
+        let isOverlappingClock = true;
+
+        // 時計に被らない座標が決まるまでループ（安全策）
+        while (isOverlappingClock) {
+            targetX = Math.random() * (room.clientWidth - 80);
+            targetY = Math.random() * (room.clientHeight - 80);
+
+            // 右上の時計エリア（top:20, right:20, size:100）に食い込まないかチェック
+            // room.clientWidth - 140 以上の X かつ 140 以下の Y には行かないようにする
+            const isInClockArea = (targetX > room.clientWidth - 140 && targetY < 140);
+            
+            if (!isInClockArea) {
+                isOverlappingClock = false;
+            }
+        }
 
         const direction = (targetX > currentX) ? 'right' : 'left';
         startWalking(direction);
@@ -85,19 +97,15 @@ async function autoMove() {
         character.style.left = `${targetX}px`;
         character.style.top = `${targetY}px`;
 
-        // 2秒かけて移動
         await new Promise(resolve => setTimeout(resolve, 2000));
         stopWalking();
         setPose('front');
     } else {
-        // 歩かない時はたまに座ったり寝たりする
         triggerSpecialEvent();
-        // 5秒後にまた次の判定へ
         setTimeout(autoMove, 5000);
         return;
     }
 
-    // 次の行動までの待機時間を短縮（3秒〜6秒）
     const waitTime = 3000 + Math.random() * 3000;
     setTimeout(autoMove, waitTime);
 }
