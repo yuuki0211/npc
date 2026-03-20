@@ -2,19 +2,28 @@ const room = document.getElementById('room');
 const character = document.getElementById('character');
 const secondHand = document.getElementById('second-hand');
 
-// --- 1. 時計の制御（カクカク動く秒針） ---
+// --- 1. 時計の制御（カクカク動く秒針 ＋ 1分ごとのイベント） ---
+let lastMinute = -1;
+
 function updateClock() {
     const now = new Date();
     const seconds = now.getSeconds();
-    // 1秒ごとに6度(360/60)ずつ回転
+    const minutes = now.getMinutes();
+    
+    // 秒針を1秒ごとに6度回転
     const degrees = seconds * 6; 
     secondHand.style.transform = `translateX(-50%) rotate(${degrees}deg)`;
-}
-// 1秒ごとに更新
-setInterval(updateClock, 1000);
-updateClock(); // 起動時に即実行
 
-// --- 2. キャラクターのポーズ制御 ---
+    // 【新機能】1分経過する（秒が0に戻る）たびにイベント抽選
+    if (minutes !== lastMinute && seconds === 0) {
+        lastMinute = minutes;
+        triggerSpecialEvent();
+    }
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// --- 2. キャラクターの制御 ---
 function setPose(pose) {
     character.style.backgroundImage = `url('assets/${pose}.png')`;
 }
@@ -35,15 +44,31 @@ function stopWalking() {
     walkInterval = null;
 }
 
-// --- 3. メインの自律行動ロジック ---
+// 特別なイベント（1分に1回呼ばれる）
+function triggerSpecialEvent() {
+    const dice = Math.random();
+    if (dice < 0.3) {
+        setPose('sit');
+        console.log("Special Event: Sitting");
+    } else if (dice < 0.6) {
+        setPose('sleep');
+        console.log("Special Event: Sleeping");
+    }
+    // 特殊ポーズの時は、次のautoMoveまでその場に留まらせる
+}
+
+// --- 3. メインの移動ロジック ---
 async function autoMove() {
-    // 家具がないので、常に 'walk' か 'idle' (front) の抽選
-    const isWalking = Math.random() > 0.3; 
+    // 現在の画像が sit や sleep なら、少し長めにその場で待機してから歩き出す
+    const currentBg = character.style.backgroundImage;
+    if (currentBg.includes('sit') || currentBg.includes('sleep')) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+
+    const isWalking = Math.random() > 0.3;
     
     if (isWalking) {
-        const currentX = parseFloat(character.style.left) || 0;
-        
-        // roomのサイズ(500px)に合わせて目的地を制限
+        const currentX = parseFloat(character.style.left) || 210;
         const targetX = Math.random() * (room.clientWidth - 80);
         const targetY = Math.random() * (room.clientHeight - 80);
 
@@ -55,19 +80,16 @@ async function autoMove() {
 
         await new Promise(resolve => setTimeout(resolve, 2000));
         stopWalking();
+        setPose('front');
     }
 
-    // 到着後、または歩かない時は正面を向いて待機
-    setPose('front');
-
-    // 待機時間を長め（5〜10秒）に設定して、観察しやすくする
-    const waitTime = 5000 + Math.random() * 5000;
+    // 待機時間（正面を向いている時間を多めに）
+    const waitTime = 6000 + Math.random() * 4000;
     setTimeout(autoMove, waitTime);
 }
 
-// 初回起動
+// 初期設定
 setPose('front');
-// 初期位置を中央に
 character.style.left = '210px';
 character.style.top = '210px';
-setTimeout(autoMove, 2000);
+setTimeout(autoMove, 1000);
