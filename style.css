@@ -51,10 +51,13 @@ body, html {
 /* キャラクター（スプライトアニメーションの土台） */
 #character {
     position: absolute;
-    width: 64px; /* 1コマの幅 */
-    height: 64px; /* 1コマの高さ */
-    background-color: #ff9999; /* 画像がない時の仮の色 */
-    transition: left 2s linear, top 2s linear; /* 移動を滑らかに */
+    width: 100px;  /* 画像のサイズに合わせて調整してね */
+    height: 100px; /* 2頭身なら正方形に近いかな？ */
+    background-image: url('front.png'); /* 画像を直接指定 */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: left 2s linear, top 2s linear;
 }
 
 /* ここにスプライトシートを適用するイメージ */

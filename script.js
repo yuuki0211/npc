@@ -38,4 +38,21 @@ function autoMove() {
     setTimeout(autoMove, 3000 + Math.random() * 3000);
 }
 
-autoMove();
+function setPose(pose) {
+    // 例：setPose('walk_right') と呼ぶと walk_right.png になる
+    character.style.backgroundImage = `url('${pose}.png')`;
+}
+
+// autoMove内の条件分岐を書き換える
+if (currentState === 'walk') {
+    const x = Math.random() * (window.innerWidth - 100);
+    // 右に行くか左に行くかで画像を変える（お好みで！）
+    setPose('walk_right'); 
+    character.style.left = `${x}px`;
+    // ...
+} else if (currentState === 'sit') {
+    setPose('sit');
+    // ...
+} else if (currentState === 'sleep') {
+    setPose('sleep');
+}
